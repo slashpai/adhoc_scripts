@@ -9,6 +9,7 @@
 # Example  ruby analyze_labels.rb http://localhost:9090
 # Example pipe output to file ruby analyze_labels.rb | tee output_analyze_labels
 
+require 'concurrent-ruby'
 require 'json'
 require 'logger'
 require 'rest-client'
@@ -24,9 +25,13 @@ def logger
   Logger.new($stdout)
 end
 
-def get(api)
-  response = RestClient.get(api)
-  JSON.parse(response)
+class Request
+  include Concurrent::Async
+
+  def get(api)
+    response = RestClient.get(api)
+    JSON.parse(response)
+  end
 end
 
 # https://prometheus.io/docs/prometheus/latest/querying/api/#getting-label-names
@@ -73,7 +78,7 @@ def get_label_values(label_rows)
   logger.info 'Getting Label Values, it will take sometime depending on number of labels'
   label_rows.each do |row|
     # The data section of the JSON response is a list of string label values.
-    @label_values[row[0]] = get(row[2])['data']
+    @label_values[row[0]] = Request.new.async.get(row[2]).value['data']
   end
   analyze_label_values
 end
@@ -114,7 +119,7 @@ labels_api = prometheus_label_api
 
 # get labels
 logger.info 'Getting all labels'
-labels = get(labels_api)
+labels = Request.new.async.get(labels_api).value
 
 # analyze labels
 logger.info 'Analyzing labels'
@@ -123,5 +128,5 @@ analyze_labels(labels)
 # print analyzed data
 puts "\nAnalysis:"
 @analysis.each do |a|
-    puts a
+  puts a
 end
