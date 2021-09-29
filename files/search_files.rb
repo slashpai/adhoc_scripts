@@ -6,11 +6,11 @@
 require 'find'
 require 'terminal-table'
 
-path=ARGV[0]
-patterns=ARGV[1].split(',')
+path = ARGV[0]
+patterns = ARGV[1].split(',')
 
 rows = []
-headings = ['File', 'Pattern', 'Status']
+headings = %w[File Pattern Status]
 puts "PATH #{path}"
 puts "PATTERNS TO SEARCH #{patterns}"
 
@@ -21,13 +21,13 @@ def print_data(headings, rows)
 end
 
 # select only files and skip directories
-files = Find.find(path).select{|f| File.file?(f)}
+files = Find.find(path).select { |f| File.file?(f) }
 
-files.each do |file|
- patterns.each do |pattern|
-  match = File.foreach(file).any?{ |l| l[pattern] }
-  rows << [file, pattern, match] unless match
- end
+patterns.each do |pattern|
+  files.each do |file|
+    match = File.foreach(file).any? { |l| l[pattern] }
+    rows << [file, pattern, match] unless match
+  end
 end
 
 print_data(headings, rows)
